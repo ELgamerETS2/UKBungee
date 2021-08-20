@@ -1,11 +1,11 @@
-package me.elgamer.UKAlerts.utils;
+package me.elgamer.UKBungee.utils;
 
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 
-import me.elgamer.UKAlerts.Main;
-import me.elgamer.UKAlerts.sql.PlayerData;
+import me.elgamer.UKBungee.Main;
+import me.elgamer.UKBungee.sql.PlayerData;
 import net.md_5.bungee.api.ProxyServer;
 
 public class Weekly {

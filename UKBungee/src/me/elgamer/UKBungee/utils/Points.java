@@ -1,14 +1,21 @@
-package me.elgamer.UKAlerts.utils;
+package me.elgamer.UKBungee.utils;
 
+import java.io.File;
+import java.io.IOException;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 
-import me.elgamer.UKAlerts.Main;
+import me.elgamer.UKBungee.Main;
+import net.md_5.bungee.config.Configuration;
+import net.md_5.bungee.config.ConfigurationProvider;
+import net.md_5.bungee.config.YamlConfiguration;
+
 
 public class Points {
 
 	Main instance = Main.getInstance(); 
+	Weekly w = new Weekly();
 
 	public void createUserIfNew(String uuid) {
 
@@ -64,7 +71,7 @@ public class Points {
 		}
 
 	}
-	
+
 	public void removePoints(String uuid, int points) {
 
 		createUserIfNew(uuid);
@@ -155,7 +162,7 @@ public class Points {
 			return lead;
 		}
 	}
-	
+
 	public Leaderboard getPoints(String uuid, Leaderboard lead) {
 
 		try {
@@ -164,14 +171,14 @@ public class Points {
 					("SELECT * FROM " + instance.pointsData + " ORDER BY POINTS DESC");
 			ResultSet results = statement.executeQuery();
 			int pos = 0;
-			
+
 			while (results.next()) {
 				pos += 1;
 				if (results.getString("UUID").equals(uuid)) {
 					break;
 				}
 			}
-			
+
 			for (int j = 0; j < 5; j++) {
 				pos -= 1;
 				if (results.previous()) {
@@ -179,7 +186,7 @@ public class Points {
 					break;
 				}
 			}
-			
+
 			for (int i = 0; i < 9; i++) {
 
 				if (results.next()) {
@@ -200,4 +207,66 @@ public class Points {
 			return lead;
 		}
 	}
+
+	public void updateMessages() {
+
+		Configuration config;
+		int messagesPerPoint = 30;
+		try {
+			config = ConfigurationProvider.getProvider(YamlConfiguration.class).load(new File(instance.getDataFolder(), "config.yml"));
+			messagesPerPoint = config.getInt("messagePerPoint");
+		} catch (IOException e1) {
+			// TODO Auto-generated catch block
+			e1.printStackTrace();
+		}
+
+		PreparedStatement statement;
+
+		try {
+
+			statement = instance.getPoints().prepareStatement
+					("SELECT * FROM " + instance.pointsData + " WHERE MESSAGES>=" + messagesPerPoint);
+			ResultSet results = statement.executeQuery();
+
+			while (results.next()) {
+				statement = instance.getPoints().prepareStatement
+						("UPDATE " + instance.pointsData + " SET POINTS=POINTS+" + 1 + ",MESSAGES=MESSAGES-" + messagesPerPoint + " WHERE UUID=?");
+				statement.setString(1,results.getString("UUID"));
+				statement.executeUpdate();
+
+				w.addPoints(results.getString("UUID"), 1);
+			}
+
+
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
+
+	}
+
+	public void updatePoints() {
+
+		PreparedStatement statement;
+
+		try {
+
+			statement = instance.getPoints().prepareStatement
+					("SELECT * FROM " + instance.pointsData + " WHERE ADD_POINTS>=1");
+			ResultSet results = statement.executeQuery();
+
+			while (results.next()) {
+				statement = instance.getPoints().prepareStatement
+						("UPDATE " + instance.pointsData + " SET POINTS=POINTS+" + results.getInt("ADD_POINTS") + ",ADD_POINTS=" + 0 + " WHERE UUID=?");
+				statement.setString(1,results.getString("UUID"));
+				statement.executeUpdate();
+
+				w.addPoints(results.getString("UUID"), results.getInt("ADD_POINTS"));
+			}
+
+
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
+	}
+
 }

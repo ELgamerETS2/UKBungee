@@ -1,8 +1,8 @@
-package me.elgamer.UKAlerts.commands;
+package me.elgamer.UKBungee.commands;
 
-import me.elgamer.UKAlerts.sql.PlayerData;
-import me.elgamer.UKAlerts.utils.Points;
-import me.elgamer.UKAlerts.utils.Weekly;
+import me.elgamer.UKBungee.sql.PlayerData;
+import me.elgamer.UKBungee.utils.Points;
+import me.elgamer.UKBungee.utils.Weekly;
 import net.md_5.bungee.api.ChatColor;
 import net.md_5.bungee.api.CommandSender;
 import net.md_5.bungee.api.chat.ComponentBuilder;

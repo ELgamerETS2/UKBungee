@@ -1,4 +1,4 @@
-package me.elgamer.UKAlerts.utils;
+package me.elgamer.UKBungee.utils;
 
 import java.time.DayOfWeek;
 import java.time.LocalDate;

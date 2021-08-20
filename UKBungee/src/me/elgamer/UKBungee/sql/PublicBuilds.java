@@ -1,10 +1,11 @@
-package me.elgamer.UKAlerts.sql;
+package me.elgamer.UKBungee.sql;
 
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 
-import me.elgamer.UKAlerts.Main;
+import me.elgamer.UKBungee.Main;
+
 
 public class PublicBuilds {
 

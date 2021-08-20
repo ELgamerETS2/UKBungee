@@ -1,18 +1,22 @@
-package me.elgamer.UKAlerts;
+package me.elgamer.UKBungee;
 
 import java.io.File;
 import java.io.IOException;
 import java.sql.Connection;
 import java.sql.DriverManager;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.concurrent.TimeUnit;
 
-import me.elgamer.UKAlerts.commands.AddPoints;
-import me.elgamer.UKAlerts.commands.PointsCommand;
-import me.elgamer.UKAlerts.commands.RemovePoints;
-import me.elgamer.UKAlerts.listeners.JoinEvent;
-import me.elgamer.UKAlerts.listeners.QuitEvent;
-import me.elgamer.UKAlerts.sql.PublicBuilds;
+import me.elgamer.UKBungee.commands.AddPoints;
+import me.elgamer.UKBungee.commands.PointsCommand;
+import me.elgamer.UKBungee.commands.RemovePoints;
+import me.elgamer.UKBungee.listeners.JoinEvent;
+import me.elgamer.UKBungee.listeners.QuitEvent;
+import me.elgamer.UKBungee.sql.PublicBuilds;
+import me.elgamer.UKBungee.utils.GetDay;
+import me.elgamer.UKBungee.utils.Points;
 import net.md_5.bungee.BungeeCord;
 import net.md_5.bungee.api.ChatColor;
 import net.md_5.bungee.api.ProxyServer;
@@ -49,11 +53,18 @@ public class Main extends Plugin {
 		//MySQL		
 		mysqlSetup();
 
+		//Creates the mysql table if not existing
+		createPointsTable();
+		createPlayerDatabase();
+
+		createWeeklyTable();
+		createPointsData();
+
 		//Commands
 		ProxyServer.getInstance().getPluginManager().registerCommand(this, new AddPoints());
 		ProxyServer.getInstance().getPluginManager().registerCommand(this, new PointsCommand());
 		ProxyServer.getInstance().getPluginManager().registerCommand(this, new RemovePoints());
-		
+
 		//Listeners
 		getProxy().getPluginManager().registerListener(this, new JoinEvent());
 		getProxy().getPluginManager().registerListener(this, new QuitEvent());
@@ -65,6 +76,9 @@ public class Main extends Plugin {
 			public void run() {
 
 				getPublicBuilds();
+				getPoints();
+
+				Points pt = new Points();
 				
 				if (PublicBuilds.newSubmit()) {
 					TextComponent message = new TextComponent("A plot has been submitted on the building server!");
@@ -76,6 +90,10 @@ public class Main extends Plugin {
 						}
 					}
 				}
+				
+				//Update points from messages and add_points.
+				pt.updateMessages();
+				pt.updatePoints();
 
 			}
 
@@ -84,23 +102,28 @@ public class Main extends Plugin {
 
 	}
 
-	@SuppressWarnings("deprecation")
 	public void onDisable() {
-		
+
 		//MySQL
 		try {
 			if (connection_publicbuilds != null && !connection_publicbuilds.isClosed()) {
 
 				connection_publicbuilds.close();
 				Configuration config = ConfigurationProvider.getProvider(YamlConfiguration.class).load(new File(getDataFolder(), "config.yml"));
-				BungeeCord.getInstance().getConsole().sendMessage("MySQL disconnected from " + config.getString("database"));
+				
+				TextComponent message = new TextComponent("MySQL disconnected from " + config.getString("database_publicbuilds"));
+				message.setColor(ChatColor.GREEN);
+				BungeeCord.getInstance().getConsole().sendMessage(message);
 			}
-			
+
 			if (connection_points != null && !connection_points.isClosed()) {
 
 				connection_points.close();
 				Configuration config = ConfigurationProvider.getProvider(YamlConfiguration.class).load(new File(getDataFolder(), "config.yml"));
-				BungeeCord.getInstance().getConsole().sendMessage("MySQL disconnected from " + config.getString("database"));
+
+				TextComponent message = new TextComponent("MySQL disconnected from " + config.getString("database_points"));
+				message.setColor(ChatColor.GREEN);
+				BungeeCord.getInstance().getConsole().sendMessage(message);
 			}
 		} catch (Exception e) {
 			e.printStackTrace();
@@ -109,7 +132,6 @@ public class Main extends Plugin {
 	}
 
 	//Creates the mysql connection.
-	@SuppressWarnings("deprecation")
 	public void mysqlSetup() {
 
 		Configuration config;
@@ -117,16 +139,16 @@ public class Main extends Plugin {
 			config = ConfigurationProvider.getProvider(YamlConfiguration.class).load(new File(getDataFolder(), "config.yml"));
 			host = config.getString("host");
 			port = config.getInt("port");
-			
+
 			database_publicbuilds = config.getString("database_publicbuilds");
 			database_points = config.getString("database_points");
-			
+
 			username = config.getString("username");
 			password = config.getString("password");
-			
+
 			plotData = config.getString("plotData");
 			submitData = config.getString("submitData");
-			
+
 			playerData = config.getString("playerData");
 			pointsData = config.getString("pointsData");
 			weeklyData = config.getString("weeklyData");
@@ -140,15 +162,19 @@ public class Main extends Plugin {
 						setPublicBuilds(DriverManager.getConnection("jdbc:mysql://" + this.host + ":" 
 								+ this.port + "/" + this.database_publicbuilds + "?&useSSL=false&", this.username, this.password));
 
-						BungeeCord.getInstance().getConsole().sendMessage("MySQL connected to " + config.getString("database_publicbuilds"));
+						TextComponent message = new TextComponent("MySQL connected to " + config.getString("database_publicbuilds"));
+						message.setColor(ChatColor.GREEN);
+						BungeeCord.getInstance().getConsole().sendMessage(message);
 					}
-					
+
 					if (connection_points == null || connection_points.isClosed()) {
 						Class.forName("com.mysql.jdbc.Driver");
 						setPoints(DriverManager.getConnection("jdbc:mysql://" + this.host + ":" 
 								+ this.port + "/" + this.database_points + "?&useSSL=false&", this.username, this.password));
 
-						BungeeCord.getInstance().getConsole().sendMessage("MySQL connected to " + config.getString("database_points"));
+						TextComponent message = new TextComponent("MySQL connected to " + config.getString("database_points"));
+						message.setColor(ChatColor.GREEN);
+						BungeeCord.getInstance().getConsole().sendMessage(message);
 					}
 				}
 
@@ -177,20 +203,20 @@ public class Main extends Plugin {
 
 		return connection_publicbuilds;
 	}
-	
+
 	//Returns the mysql points connection.
-		public Connection getPoints() {
+	public Connection getPoints() {
 
-			try {
-				if (connection_points == null || connection_points.isClosed()) {
-					mysqlSetup();
-				}
-			} catch (SQLException e) {
-				e.printStackTrace();
+		try {
+			if (connection_points == null || connection_points.isClosed()) {
+				mysqlSetup();
 			}
-
-			return connection_points;
+		} catch (SQLException e) {
+			e.printStackTrace();
 		}
+
+		return connection_points;
+	}
 
 	//Sets the mysql connection as the variable 'connection'.
 	public void setPublicBuilds(Connection connection) {
@@ -200,10 +226,98 @@ public class Main extends Plugin {
 	public void setPoints(Connection connection) {
 		this.connection_points = connection;
 	}
-	
+
 	//Returns an instance of the plugin.
 	public static Main getInstance() {
 		return instance;
+	}
+
+	public void createPointsTable() {
+		try {
+			PreparedStatement statement = instance.getPoints().prepareStatement
+					("CREATE TABLE IF NOT EXISTS " + pointsData
+							+ " ( UUID VARCHAR(36) NOT NULL , POINTS INT NOT NULL , MESSAGES INT NOT NULL , ADD_POINTS INT NOT NULL , UNIQUE (UUID))");
+			statement.executeUpdate();
+
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
+	}
+
+	public void createPlayerDatabase() {
+		try {
+			PreparedStatement statement = instance.getPoints().prepareStatement
+					("CREATE TABLE IF NOT EXISTS " + playerData
+							+ " ( UUID VARCHAR(36) NOT NULL , NAME VARCHAR(36) NOT NULL , BUILDING_TIME INT NOT NULL , UNIQUE (UUID))");
+			statement.executeUpdate();
+
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
+	}
+
+	public void createWeeklyTable() {
+		try {
+			PreparedStatement statement = instance.getPoints().prepareStatement
+					("CREATE TABLE IF NOT EXISTS " + weeklyData
+							+ " ( UUID VARCHAR(36) NOT NULL , POINTS INT NOT NULL , MONDAY INT NOT NULL , TUESDAY INT NOT NULL , WEDNESDAY INT NOT NULL , THURSDAY INT NOT NULL , FRIDAY INT NOT NULL , SATURDAY INT NOT NULL , SUNDAY INT NOT NULL , UNIQUE (UUID))");
+			statement.executeUpdate();
+
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
+	}
+
+	public void createPointsData() {
+		try {
+			PreparedStatement statement = instance.getPoints().prepareStatement
+					("CREATE TABLE IF NOT EXISTS " + data
+							+ " ( DATA VARCHAR(36) NOT NULL , VALUE VARCHAR(36) NOT NULL , UNIQUE (DATA))");
+			statement.executeUpdate();
+			addDay();
+			addLeader();
+
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
+	}
+
+	public void addDay() {
+		try {
+			PreparedStatement statement = instance.getPoints().prepareStatement
+					("SELECT * FROM " + data + " WHERE DATA=?");
+			statement.setString(1, "day");
+			ResultSet results = statement.executeQuery();
+			if (!(results.next())) {
+				statement = instance.getPoints().prepareStatement
+						("INSERT INTO " + data + " (DATA,VALUE) VALUE (?,?)");
+				statement.setString(1, "day");
+				statement.setString(2, String.valueOf(GetDay.getDay()));
+				statement.executeUpdate();
+			}
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
+
+	}
+
+	public void addLeader() {
+		try {
+			PreparedStatement statement = instance.getPoints().prepareStatement
+					("SELECT * FROM " + data + " WHERE DATA=?");
+			statement.setString(1, "leader");
+			ResultSet results = statement.executeQuery();
+			if (!(results.next())) {
+				statement = instance.getPoints().prepareStatement
+						("INSERT INTO " + data + " (DATA,VALUE) VALUE (?,?)");
+				statement.setString(1, "leader");
+				statement.setString(2, "null");
+				statement.executeUpdate();
+			}
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
+
 	}
 
 }

@@ -1,10 +1,10 @@
-package me.elgamer.UKAlerts.listeners;
+package me.elgamer.UKBungee.listeners;
 
-import me.elgamer.UKAlerts.Main;
-import me.elgamer.UKAlerts.sql.PlayerData;
-import me.elgamer.UKAlerts.sql.PublicBuilds;
-import me.elgamer.UKAlerts.utils.Points;
-import me.elgamer.UKAlerts.utils.Weekly;
+import me.elgamer.UKBungee.Main;
+import me.elgamer.UKBungee.sql.PlayerData;
+import me.elgamer.UKBungee.sql.PublicBuilds;
+import me.elgamer.UKBungee.utils.Points;
+import me.elgamer.UKBungee.utils.Weekly;
 import net.md_5.bungee.api.ChatColor;
 import net.md_5.bungee.api.chat.TextComponent;
 import net.md_5.bungee.api.connection.ProxiedPlayer;

@@ -1,10 +1,14 @@
-package me.elgamer.UKAlerts.sql;
+package me.elgamer.UKBungee.sql;
 
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 
-import me.elgamer.UKAlerts.Main;
+import me.elgamer.UKBungee.Main;
+import net.md_5.bungee.BungeeCord;
+import net.md_5.bungee.api.ChatColor;
+import net.md_5.bungee.api.chat.TextComponent;
+
 
 public class PlayerData {
 
@@ -61,6 +65,10 @@ public class PlayerData {
 			statement.setString(2, name);
 			statement.executeUpdate();
 
+			TextComponent message = new TextComponent("Added " + name + " to the database.");
+			message.setColor(ChatColor.GREEN);
+			BungeeCord.getInstance().getConsole().sendMessage(message);
+			
 		} catch (SQLException e) {
 			e.printStackTrace();
 		}

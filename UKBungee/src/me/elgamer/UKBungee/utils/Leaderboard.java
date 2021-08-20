@@ -1,4 +1,4 @@
-package me.elgamer.UKAlerts.utils;
+package me.elgamer.UKBungee.utils;
 
 public class Leaderboard {
 	
