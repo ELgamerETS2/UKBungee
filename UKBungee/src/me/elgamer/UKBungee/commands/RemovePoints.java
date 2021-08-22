@@ -3,17 +3,21 @@ package me.elgamer.UKBungee.commands;
 import me.elgamer.UKBungee.sql.PlayerData;
 import me.elgamer.UKBungee.utils.Points;
 import me.elgamer.UKBungee.utils.Weekly;
+import net.md_5.bungee.BungeeCord;
 import net.md_5.bungee.api.ChatColor;
 import net.md_5.bungee.api.CommandSender;
 import net.md_5.bungee.api.chat.ComponentBuilder;
+import net.md_5.bungee.api.chat.TextComponent;
 import net.md_5.bungee.api.connection.ProxiedPlayer;
 import net.md_5.bungee.api.plugin.Command;
 
 public class RemovePoints extends Command {
 
 	public RemovePoints() {
-		super("RemovePoints");
-		// TODO Auto-generated constructor stub
+		super("removepoints");
+		TextComponent message = new TextComponent("removepoints");
+		message.setColor(ChatColor.GREEN);
+		BungeeCord.getInstance().getConsole().sendMessage(message);
 	}
 
 	@Override

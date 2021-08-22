@@ -7,6 +7,10 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 
 import me.elgamer.UKBungee.Main;
+import me.elgamer.UKBungee.sql.PlayerData;
+import net.md_5.bungee.BungeeCord;
+import net.md_5.bungee.api.ChatColor;
+import net.md_5.bungee.api.chat.TextComponent;
 import net.md_5.bungee.config.Configuration;
 import net.md_5.bungee.config.ConfigurationProvider;
 import net.md_5.bungee.config.YamlConfiguration;
@@ -24,10 +28,11 @@ public class Points {
 			try {
 
 				PreparedStatement statement = instance.getPoints().prepareStatement
-						("INSERT INTO " + instance.pointsData + " (UUID,POINTS,MESSAGES) VALUE (?,?,?)");
+						("INSERT INTO " + instance.pointsData + " (UUID,POINTS,MESSAGES,ADD_POINTS) VALUE (?,?,?,?)");
 				statement.setString(1, uuid);
 				statement.setInt(2, 0);
 				statement.setInt(3, 0);
+				statement.setInt(4, 0);
 				statement.executeUpdate();		
 
 			} catch (SQLException e) {
@@ -214,7 +219,7 @@ public class Points {
 		int messagesPerPoint = 30;
 		try {
 			config = ConfigurationProvider.getProvider(YamlConfiguration.class).load(new File(instance.getDataFolder(), "config.yml"));
-			messagesPerPoint = config.getInt("messagePerPoint");
+			messagesPerPoint = config.getInt("messagesPerPoint");
 		} catch (IOException e1) {
 			// TODO Auto-generated catch block
 			e1.printStackTrace();
@@ -233,6 +238,10 @@ public class Points {
 						("UPDATE " + instance.pointsData + " SET POINTS=POINTS+" + 1 + ",MESSAGES=MESSAGES-" + messagesPerPoint + " WHERE UUID=?");
 				statement.setString(1,results.getString("UUID"));
 				statement.executeUpdate();
+				
+				TextComponent message = new TextComponent("Added 1 point to " + PlayerData.getName(results.getString("UUID")));
+				message.setColor(ChatColor.GREEN);
+				BungeeCord.getInstance().getConsole().sendMessage(message);
 
 				w.addPoints(results.getString("UUID"), 1);
 			}
@@ -260,6 +269,10 @@ public class Points {
 				statement.setString(1,results.getString("UUID"));
 				statement.executeUpdate();
 
+				TextComponent message = new TextComponent("Added " + results.getInt("ADD_POINTS") + " point(s) to " + PlayerData.getName(results.getString("UUID")));
+				message.setColor(ChatColor.GREEN);
+				BungeeCord.getInstance().getConsole().sendMessage(message);
+				
 				w.addPoints(results.getString("UUID"), results.getInt("ADD_POINTS"));
 			}
 

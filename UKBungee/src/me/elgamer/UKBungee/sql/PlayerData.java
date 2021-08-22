@@ -60,9 +60,10 @@ public class PlayerData {
 		try {
 
 			PreparedStatement statement = instance.getPoints().prepareStatement
-					("INSERT INTO " + instance.playerData + " (UUID,NAME) VALUE (?,?)");
+					("INSERT INTO " + instance.playerData + " (UUID,NAME,BUILDING_TIME) VALUE (?,?,?)");
 			statement.setString(1, uuid);
 			statement.setString(2, name);
+			statement.setInt(3, 0);
 			statement.executeUpdate();
 
 			TextComponent message = new TextComponent("Added " + name + " to the database.");

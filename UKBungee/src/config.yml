@@ -16,4 +16,10 @@ plotData: plot_data
 submitData: submit_data
 
 #Points
-playerData: player_data;
+playerData: player_data
+pointsData: points_data
+weeklyData: weekly_data
+data: data
+
+pointsData: 
+messagesPerPoint: 30
