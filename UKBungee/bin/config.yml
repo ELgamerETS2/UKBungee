@@ -1,0 +1,25 @@
+#MySQL is manditory for this plugin
+#Login information
+host: localhost
+port: 3306
+username: root
+password: password
+
+#Database name (doesn't require adjusting)
+database_publicbuilds: minecraft_publicbuilds
+database_points: minecraft_points
+
+#Tables in database (doesn't require adjusting)
+
+#PublicBuilds
+plotData: plot_data
+submitData: submit_data
+
+#Points
+playerData: player_data
+pointsData: points_data
+weeklyData: weekly_data
+data: data
+
+pointsData: 
+messagesPerPoint: 30
