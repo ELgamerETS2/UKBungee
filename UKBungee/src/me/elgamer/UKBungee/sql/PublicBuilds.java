@@ -16,12 +16,12 @@ public class PublicBuilds {
 
 		try {
 			PreparedStatement statement = instance.getPublicBuilds().prepareStatement
-					("SELECT * FROM " + instance.plotData + " WHERE STATUS=?");
+					("SELECT * FROM " + instance.plotData + " WHERE status=?");
 			statement.setString(1, "submitted");
 
 			ResultSet results = statement.executeQuery();
 			while (results.next()) {
-				if (results.getString("OWNER").equals(uuid)) {
+				if (results.getString("uuid").equals(uuid)) {
 					continue;
 				} else {
 					return true;
@@ -33,6 +33,28 @@ public class PublicBuilds {
 		} catch (SQLException sql) {
 			sql.printStackTrace();
 			return false;
+		}
+	}
+	
+	//Count number of submitted plots
+	public static int reviewCount(String uuid) {
+		
+		Main instance = Main.getInstance();
+		
+		try {
+			PreparedStatement statement = instance.getPublicBuilds().prepareStatement
+					("SELECT COUNT(*) FROM " + instance.plotData + " WHERE status=? AND uuid <> ?");
+			statement.setString(1, "submitted");
+			statement.setString(2, uuid);
+
+			ResultSet results = statement.executeQuery();
+			results.next();
+			
+			return (results.getInt(1));
+
+		} catch (SQLException sql) {
+			sql.printStackTrace();
+			return 0;
 		}
 	}
 

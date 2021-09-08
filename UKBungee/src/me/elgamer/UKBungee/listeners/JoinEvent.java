@@ -43,10 +43,16 @@ public class JoinEvent implements Listener {
 			
 		if (p.hasPermission("group.reviewer")) {
 			
-			if (PublicBuilds.reviewExists(p.getUniqueId().toString())) {
-				TextComponent message = new TextComponent("There is a plot available for review on the building server!");
-				message.setColor(ChatColor.GREEN);
-				p.sendMessage(message);
+			if (PublicBuilds.reviewExists(uuid)) {
+				if (PublicBuilds.reviewCount(uuid) == 1) {
+					TextComponent message = new TextComponent("There is 1 plot available for review on the building server!");
+					message.setColor(ChatColor.GREEN);
+					p.sendMessage(message);
+				} else {
+					TextComponent message = new TextComponent("There are " + PublicBuilds.reviewCount(uuid) + " plots available for review on the building server!");
+					message.setColor(ChatColor.GREEN);
+					p.sendMessage(message);
+				}
 			}
 			
 		}
