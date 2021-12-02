@@ -4,8 +4,8 @@ import java.io.File;
 import java.io.IOException;
 
 import me.elgamer.UKBungee.Main;
-import me.elgamer.UKBungee.utils.Points;
-import me.elgamer.UKBungee.utils.Weekly;
+import me.elgamer.UKBungee.sql.Points;
+import me.elgamer.UKBungee.sql.Weekly;
 import net.md_5.bungee.api.ChatColor;
 import net.md_5.bungee.api.chat.TextComponent;
 import net.md_5.bungee.api.connection.ProxiedPlayer;
@@ -40,8 +40,8 @@ public class QuitEvent implements Listener {
 			e1.printStackTrace();
 		}
 		
-		Points pt = new Points();
-		Weekly w = new Weekly();
+		Points pt = Main.getInstance().points;
+		Weekly w = Main.getInstance().weekly;
 		double messageCount = pt.getMessageCount(e.getPlayer().getUniqueId().toString());
 		int points = (int) Math.floor(messageCount/messagesPerPoint);
 		

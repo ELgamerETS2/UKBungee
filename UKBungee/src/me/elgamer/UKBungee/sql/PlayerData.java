@@ -1,25 +1,35 @@
 package me.elgamer.UKBungee.sql;
 
+import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 
-import me.elgamer.UKBungee.Main;
+import javax.sql.DataSource;
+
 import net.md_5.bungee.BungeeCord;
 import net.md_5.bungee.api.ChatColor;
 import net.md_5.bungee.api.chat.TextComponent;
 
 
 public class PlayerData {
+	
+	DataSource dataSource;
+	
+	public PlayerData(DataSource dataSource) {
+		this.dataSource = dataSource;
+	}
+	
+	private Connection conn() throws SQLException {
+		return dataSource.getConnection();
+	}
 
-	public static Boolean userExists(String uuid) {
+	public Boolean userExists(String uuid) {
 
-		Main instance = Main.getInstance();
-		
-		try {
+		try (Connection conn = conn(); PreparedStatement statement = conn.prepareStatement(
+				"SELECT uuid FROM player_data WHERE uuid=?;"
+				)){
 
-			PreparedStatement statement = instance.getPoints().prepareStatement
-					("SELECT * FROM " + instance.playerData + " WHERE UUID=?");
 			statement.setString(1, uuid);
 			ResultSet results = statement.executeQuery();
 
@@ -35,14 +45,12 @@ public class PlayerData {
 		}
 	}
 
-	public static void updateName(String uuid, String name) {
+	public void updateName(String uuid, String name) {
 
-		Main instance = Main.getInstance();
-		
-		try {
+		try (Connection conn = conn(); PreparedStatement statement = conn.prepareStatement(
+				"UPDATE player_data SET name=? WHERE uuid=?;"
+				)){
 
-			PreparedStatement statement = instance.getPoints().prepareStatement
-					("UPDATE " + instance.playerData + " SET NAME=? WHERE UUID=?");
 			statement.setString(2, uuid);
 			statement.setString(1, name);
 			statement.executeUpdate();
@@ -53,14 +61,12 @@ public class PlayerData {
 
 	}
 
-	public static void createUser(String uuid, String name) {
+	public void createUser(String uuid, String name) {
 
-		Main instance = Main.getInstance();
-		
-		try {
+		try (Connection conn = conn(); PreparedStatement statement = conn.prepareStatement(
+				"INSERT INTO player_data(uuid, name, building_time) VALUES(?, ?, ?);"
+				)){
 
-			PreparedStatement statement = instance.getPoints().prepareStatement
-					("INSERT INTO " + instance.playerData + " (UUID,NAME,BUILDING_TIME) VALUE (?,?,?)");
 			statement.setString(1, uuid);
 			statement.setString(2, name);
 			statement.setInt(3, 0);
@@ -76,18 +82,16 @@ public class PlayerData {
 
 	}
 	
-	public static String getName(String uuid) {
+	public String getName(String uuid) {
 		
-		Main instance = Main.getInstance();
-		
-		try {
+		try (Connection conn = conn(); PreparedStatement statement = conn.prepareStatement(
+				"SELECT name FROM player_data WHERE uuid=?;"
+				)){
 
-			PreparedStatement statement = instance.getPoints().prepareStatement
-					("SELECT * FROM " + instance.playerData + " WHERE UUID=?");
 			statement.setString(1, uuid);
 			ResultSet results = statement.executeQuery();
 			if (results.next()) {
-				return results.getString("NAME");
+				return results.getString("name");
 			} else {
 				return null;
 			}
@@ -99,7 +103,7 @@ public class PlayerData {
 		
 	}
 
-	public static String[] getNames(String[] uuids) {
+	public String[] getNames(String[] uuids) {
 		
 		String[] names = new String[uuids.length];
 		
@@ -112,18 +116,16 @@ public class PlayerData {
 		return names;
 	}
 	
-	public static String getUuid(String name) {
+	public String getUuid(String name) {
 		
-		Main instance = Main.getInstance();
-		
-		try {
+		try (Connection conn = conn(); PreparedStatement statement = conn.prepareStatement(
+				"SELECT uuid FROM player_data WHERE name=?;"
+				)){
 
-			PreparedStatement statement = instance.getPoints().prepareStatement
-					("SELECT * FROM " + instance.playerData + " WHERE NAME=?");
 			statement.setString(1, name);
 			ResultSet results = statement.executeQuery();
 			if (results.next()) {
-				return results.getString("UUID");
+				return results.getString("uuid");
 			} else {
 				return null;
 			}

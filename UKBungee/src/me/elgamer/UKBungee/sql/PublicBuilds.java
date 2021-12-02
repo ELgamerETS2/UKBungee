@@ -1,22 +1,32 @@
 package me.elgamer.UKBungee.sql;
 
+import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 
-import me.elgamer.UKBungee.Main;
+import javax.sql.DataSource;
 
 
 public class PublicBuilds {
 
+	DataSource dataSource;
+
+	public PublicBuilds(DataSource dataSource) {
+		this.dataSource = dataSource;
+	}
+
+	private Connection conn() throws SQLException {
+		return dataSource.getConnection();
+	}
+
 	//Checks whether there is a submitted plot to review.
-	public static boolean reviewExists(String uuid) {
+	public boolean reviewExists(String uuid) {
 
-		Main instance = Main.getInstance();
+		try (Connection conn = conn(); PreparedStatement statement = conn.prepareStatement(
+				"SELECT uuid FROM plot_data WHERE status=?;"
+				)){
 
-		try {
-			PreparedStatement statement = instance.getPublicBuilds().prepareStatement
-					("SELECT * FROM " + instance.plotData + " WHERE status=?");
 			statement.setString(1, "submitted");
 
 			ResultSet results = statement.executeQuery();
@@ -35,21 +45,20 @@ public class PublicBuilds {
 			return false;
 		}
 	}
-	
+
 	//Count number of submitted plots
-	public static int reviewCount(String uuid) {
-		
-		Main instance = Main.getInstance();
-		
-		try {
-			PreparedStatement statement = instance.getPublicBuilds().prepareStatement
-					("SELECT COUNT(*) FROM " + instance.plotData + " WHERE status=? AND uuid <> ?");
+	public int reviewCount(String uuid) {
+
+		try (Connection conn = conn(); PreparedStatement statement = conn.prepareStatement(
+				"SELECT COUNT(uuid) FROM plot_data WHERE status=? AND uuid <> ?;"
+				)){
+
 			statement.setString(1, "submitted");
 			statement.setString(2, uuid);
 
 			ResultSet results = statement.executeQuery();
 			results.next();
-			
+
 			return (results.getInt(1));
 
 		} catch (SQLException sql) {
@@ -58,28 +67,41 @@ public class PublicBuilds {
 		}
 	}
 
-	public static boolean newSubmit() {
-		
-		Main instance = Main.getInstance();
+	public boolean submitExists() {
 
-		try {
-			PreparedStatement statement = instance.getPublicBuilds().prepareStatement
-					("SELECT * FROM " + instance.submitData);
+		try (Connection conn = conn(); PreparedStatement statement = conn.prepareStatement(
+				"SELECT * FROM submit_data;"
+				)){
+
 			ResultSet results = statement.executeQuery();
-			
+
 			if (results.next()) {
-				
-				statement = instance.getPublicBuilds().prepareStatement
-						("DELETE FROM " + instance.submitData);
-				statement.executeUpdate();
 				return true;
-				
 			} else {
 				return false;
 			}
 
 		} catch (SQLException sql) {
 			sql.printStackTrace();
+			return false;
+		}
+	}
+
+	public boolean newSubmit() {
+
+		if (submitExists()) { 
+			try (Connection conn = conn(); PreparedStatement statement = conn.prepareStatement(
+					"DELETE FROM submit_data;"
+					)){
+
+				statement.executeUpdate();
+				return true;
+
+			} catch (SQLException sql) {
+				sql.printStackTrace();
+				return false;
+			}
+		} else {
 			return false;
 		}
 	}

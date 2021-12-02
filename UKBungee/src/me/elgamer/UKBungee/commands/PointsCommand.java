@@ -1,9 +1,10 @@
 package me.elgamer.UKBungee.commands;
 
+import me.elgamer.UKBungee.Main;
 import me.elgamer.UKBungee.sql.PlayerData;
+import me.elgamer.UKBungee.sql.Points;
+import me.elgamer.UKBungee.sql.Weekly;
 import me.elgamer.UKBungee.utils.Leaderboard;
-import me.elgamer.UKBungee.utils.Points;
-import me.elgamer.UKBungee.utils.Weekly;
 import net.md_5.bungee.BungeeCord;
 import net.md_5.bungee.api.ChatColor;
 import net.md_5.bungee.api.CommandSender;
@@ -30,8 +31,9 @@ public class PointsCommand extends Command {
 
 		ProxiedPlayer p = (ProxiedPlayer) sender;
 
-		Points mysql = new Points();
-		Weekly weekly = new Weekly();
+		Points mysql = Main.getInstance().points;
+		Weekly weekly = Main.getInstance().weekly;
+		PlayerData playerData = Main.getInstance().playerData;
 		Leaderboard lead = new Leaderboard();
 
 		if (args.length == 0) {
@@ -52,7 +54,7 @@ public class PointsCommand extends Command {
 			p.sendMessage(new ComponentBuilder (String.format("%-6s%-8s%-16s", "#", "Points" , "Username")).color(ChatColor.WHITE).create());  
 			p.sendMessage(new ComponentBuilder ("------------------------").color(ChatColor.WHITE).create());  
 
-			String[] names = PlayerData.getNames(lead.uuids);
+			String[] names = playerData.getNames(lead.uuids);
 
 			for (int i = 0; i < lead.points.length; i++) {
 
@@ -86,7 +88,7 @@ public class PointsCommand extends Command {
 			p.sendMessage(new ComponentBuilder (String.format("%-6s%-8s%-16s", "#", "Points" , "Username")).color(ChatColor.WHITE).create());
 			p.sendMessage(new ComponentBuilder ("------------------------").color(ChatColor.WHITE).create());
 
-			String[] names = PlayerData.getNames(lead.uuids);
+			String[] names = playerData.getNames(lead.uuids);
 
 			for (int i = 0; i < lead.points.length; i++) {
 
@@ -119,7 +121,7 @@ public class PointsCommand extends Command {
 				p.sendMessage(new ComponentBuilder (String.format("%-6s%-8s%-16s", "#", "Points" , "Username")).color(ChatColor.WHITE).create());
 				p.sendMessage(new ComponentBuilder ("------------------------").color(ChatColor.WHITE).create());
 
-				String[] names = PlayerData.getNames(lead.uuids);
+				String[] names = playerData.getNames(lead.uuids);
 
 				for (int i = 0; i < lead.points.length; i++) {
 
@@ -150,7 +152,7 @@ public class PointsCommand extends Command {
 				p.sendMessage(new ComponentBuilder (String.format("%-6s%-8s%-16s", "#", "Points" , "Username")).color(ChatColor.WHITE).create());
 				p.sendMessage(new ComponentBuilder ("------------------------").color(ChatColor.WHITE).create());
 				
-				String[] names = PlayerData.getNames(lead.uuids);
+				String[] names = playerData.getNames(lead.uuids);
 
 				for (int i = 0; i < lead.points.length; i++) {
 
@@ -164,7 +166,7 @@ public class PointsCommand extends Command {
 				return;
 			} else {
 				
-				String uuid = PlayerData.getUuid(args[1]);
+				String uuid = playerData.getUuid(args[1]);
 
 				if (uuid == null) {
 					p.sendMessage(new ComponentBuilder ("This Player has never connected to the server!").color(ChatColor.RED).create());
@@ -192,7 +194,7 @@ public class PointsCommand extends Command {
 				p.sendMessage(new ComponentBuilder (String.format("%-6s%-8s%-16s", "#", "Points" , "Username")).color(ChatColor.WHITE).create());
 				p.sendMessage(new ComponentBuilder ("------------------------").color(ChatColor.WHITE).create());
 
-				String[] names = PlayerData.getNames(lead.uuids);
+				String[] names = playerData.getNames(lead.uuids);
 
 				for (int i = 0; i < lead.points.length; i++) {
 
@@ -208,7 +210,7 @@ public class PointsCommand extends Command {
 			
 		} else {
 
-			String uuid = PlayerData.getUuid(args[0]);
+			String uuid = playerData.getUuid(args[0]);
 
 			if (uuid == null) {
 				p.sendMessage(new ComponentBuilder ("This Player has never connected to the server!").color(ChatColor.RED).create());
@@ -236,7 +238,7 @@ public class PointsCommand extends Command {
 			p.sendMessage(new ComponentBuilder (String.format("%-6s%-8s%-16s", "#", "Points" , "Username")).color(ChatColor.WHITE).create());
 			p.sendMessage(new ComponentBuilder ("------------------------").color(ChatColor.WHITE).create());
 
-			String[] names = PlayerData.getNames(lead.uuids);
+			String[] names = playerData.getNames(lead.uuids);
 
 			for (int i = 0; i < lead.points.length; i++) {
 

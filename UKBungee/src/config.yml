@@ -8,18 +8,9 @@ password: password
 #Database name (doesn't require adjusting)
 database_publicbuilds: minecraft_publicbuilds
 database_points: minecraft_points
-
-#Tables in database (doesn't require adjusting)
-
-#PublicBuilds
-plotData: plot_data
-submitData: submit_data
-
-#Points
-playerData: player_data
-pointsData: points_data
-weeklyData: weekly_data
-data: data
+database_uknet: minecraft_uknet
 
 pointsData: 
 messagesPerPoint: 30
+
+messageChannel: GlobalMessages

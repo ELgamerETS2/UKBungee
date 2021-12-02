@@ -1,25 +1,39 @@
-package me.elgamer.UKBungee.utils;
+package me.elgamer.UKBungee.sql;
 
+import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 
+import javax.sql.DataSource;
+
 import me.elgamer.UKBungee.Main;
-import me.elgamer.UKBungee.sql.PlayerData;
+import me.elgamer.UKBungee.utils.GetDay;
+import me.elgamer.UKBungee.utils.Leaderboard;
 import net.md_5.bungee.api.ProxyServer;
 
 public class Weekly {
 
-	Main instance = Main.getInstance(); 
+	DataSource dataSource;
+	PlayerData playerData;
+
+	public Weekly(DataSource dataSource) {
+		this.dataSource = dataSource;
+		this.playerData = Main.getInstance().playerData;
+	}
+
+	private Connection conn() throws SQLException {
+		return dataSource.getConnection();
+	}
 
 	public void createUserIfNew(String uuid) {
 
 		if (userExists(uuid) == false) {
 
-			try {
+			try (Connection conn = conn(); PreparedStatement statement = conn.prepareStatement(
+					"INSERT INTO weekly_data(uuid, points, monday, tuesday, wednesday, thursday, friday, saturday, sunday) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?);"
+					)){
 
-				PreparedStatement statement = instance.getPoints().prepareStatement
-						("INSERT INTO " + instance.weeklyData + " (UUID,POINTS,MONDAY,TUESDAY,WEDNESDAY,THURSDAY,FRIDAY,SATURDAY,SUNDAY) VALUE (?,?,?,?,?,?,?,?,?)");
 				statement.setString(1, uuid);
 				statement.setInt(2, 0);
 				statement.setInt(3, 0);
@@ -39,10 +53,10 @@ public class Weekly {
 
 	public boolean userExists(String uuid) {
 
-		try {
+		try (Connection conn = conn(); PreparedStatement statement = conn.prepareStatement(
+				"SELECT uuid FROM weekly_data WHERE uuid=?;"
+				)){
 
-			PreparedStatement statement = instance.getPoints().prepareStatement
-					("SELECT * FROM " + instance.weeklyData + " WHERE UUID=?");
 			statement.setString(1, uuid);
 
 			ResultSet results = statement.executeQuery();
@@ -68,33 +82,33 @@ public class Weekly {
 		switch (day) {
 
 		case 1: 
-			dayString = "MONDAY";
+			dayString = "monday";
 			break;
 		case 2: 
-			dayString = "TUESDAY";
+			dayString = "tuesday";
 			break;
 		case 3:
-			dayString = "WEDNESDAY";
+			dayString = "wednesday";
 			break;
 		case 4: 
-			dayString = "THURSDAY";
+			dayString = "thursday";
 			break;
 		case 5: 
-			dayString = "FRIDAY";
+			dayString = "friday";
 			break;
 		case 6: 
-			dayString = "SATURDAY";
+			dayString = "saturday";
 			break;
 		case 7: 
-			dayString = "SUNDAY";
+			dayString = "sunday";
 			break;
 
 		}
 
-		try {
+		try (Connection conn = conn(); PreparedStatement statement = conn.prepareStatement(
+				"UPDATE weekly_data SET points=points+" + points + ", " + dayString + "=" + dayString + "+" + points + "WHERE uuid=?;"
+				)){
 
-			PreparedStatement statement = instance.getPoints().prepareStatement
-					("UPDATE " + instance.weeklyData + " SET POINTS=POINTS+" + points + ", " + dayString + "=" + dayString + "+" + points + " WHERE UUID=?");
 			statement.setString(1, uuid);
 			statement.executeUpdate();
 
@@ -112,10 +126,10 @@ public class Weekly {
 		createUserIfNew(uuid);
 		int day = GetDay.getDay();
 
-		try {
+		try (Connection conn = conn(); PreparedStatement statement = conn.prepareStatement(
+				"UPDATE weekly_data SET points=points-" + points + ", " + day + "=" + day + "-" + points + " WHERE uuid=?;"
+				)){
 
-			PreparedStatement statement = instance.getPoints().prepareStatement
-					("UPDATE " + instance.weeklyData + " SET POINTS=POINTS-" + points + ", " + day + "=" + day + "-" + points + " WHERE UUID=?");
 			statement.setString(1, uuid);
 			statement.executeUpdate();
 
@@ -125,19 +139,58 @@ public class Weekly {
 		updateLeader();
 
 	}
+	
+	public void removePointsForDay(String day) {
+		
+		try (Connection conn = conn(); PreparedStatement statement = conn.prepareStatement(
+				"UPDATE weekly_data SET points=points-" + day + ";"
+				)){
+
+			statement.executeUpdate();
+
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
+	}
+	
+	public void clearDay(String day) {
+		try (Connection conn = conn(); PreparedStatement statement = conn.prepareStatement(
+				"UPDATE weekly_data SET "+ day + "=" + 0 + ";"
+				)){
+
+			statement.executeUpdate();
+
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
+	}
+	
+	public void setDay(String day) {
+		try (Connection conn = conn(); PreparedStatement statement = conn.prepareStatement(
+				"UPDATE data SET value=" + day + " WHERE data=?;"
+				)){
+
+			statement.setString(1,"day");
+			statement.executeUpdate();
+
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
+	}
 
 	public void updateDay() {
 
-		try {
-			PreparedStatement statement = instance.getPoints().prepareStatement
-					("SELECT * FROM " + instance.data + " WHERE DATA=?");
+		try (Connection conn = conn(); PreparedStatement statement = conn.prepareStatement(
+				"SELECT value FROM data WHERE data=?;"
+				)){
+
 			statement.setString(1, "day");
 			ResultSet results = statement.executeQuery();
 			results.next();
 
 			int day;
 			try {
-				day = Integer.parseInt(results.getString("VALUE"));
+				day = Integer.parseInt(results.getString("value"));
 			}
 			catch (NumberFormatException e)
 			{
@@ -151,41 +204,33 @@ public class Weekly {
 				switch (GetDay.getDay()) {
 
 				case 1: 
-					dayString = "MONDAY";
+					dayString = "monday";
 					break;
 				case 2: 
-					dayString = "TUESDAY";
+					dayString = "tuesday";
 					break;
 				case 3: 
-					dayString = "WEDNESDAY";
+					dayString = "wednesday";
 					break;
 				case 4: 
-					dayString = "THURSDAY";
+					dayString = "thursday";
 					break;
 				case 5: 
-					dayString = "FRIDAY";
+					dayString = "friday";
 					break;
 				case 6: 
-					dayString = "SATURDAY";
+					dayString = "saturday";
 					break;
 				case 7: 
-					dayString = "SUNDAY";
+					dayString = "sunday";
 					break;
 
 				}
 
-				PreparedStatement update = instance.getPoints().prepareStatement
-						("UPDATE " + instance.weeklyData + " SET POINTS=POINTS-" + dayString);
-				update.executeUpdate();
+				removePointsForDay(dayString);
+				clearDay(dayString);
+				setDay(String.valueOf(GetDay.getDay()));
 
-				update = instance.getPoints().prepareStatement
-						("UPDATE " + instance.weeklyData + " SET " + dayString + "=" + 0);
-				update.executeUpdate();
-
-				update = instance.getPoints().prepareStatement
-						("UPDATE " + instance.data + " SET VALUE=" + String.valueOf(GetDay.getDay()) + " WHERE DATA=?");
-				update.setString(1,"day");
-				update.executeUpdate();
 			}
 
 		} catch (SQLException e) {
@@ -200,20 +245,20 @@ public class Weekly {
 
 			if (!(getLeader().equals("null"))) {
 
-				String cmd = "/lpb user " + PlayerData.getName(getLeader()) + " parent add leader";
+				String cmd = "/lpb user " + playerData.getName(getLeader()) + " parent add leader";
 				ProxyServer.getInstance().getPluginManager().dispatchCommand(ProxyServer.getInstance().getConsole(), cmd);
 			}
 
 			if (!(currentLeader().equals("null"))) {
 
-				String cmd = "/lpb user " + PlayerData.getName(currentLeader()) + " parent remove leader";
+				String cmd = "/lpb user " + playerData.getName(currentLeader()) + " parent remove leader";
 				ProxyServer.getInstance().getPluginManager().dispatchCommand(ProxyServer.getInstance().getConsole(), cmd);
 			}
 
-			try {
+			try (Connection conn = conn(); PreparedStatement statement = conn.prepareStatement(
+					"UPDATE data SET value=? WHERE data=?;"
+					)){
 
-				PreparedStatement statement = instance.getPoints().prepareStatement
-						("UPDATE " + instance.data + " SET VALUE=? WHERE DATA=?");
 				statement.setString(1, getLeader());
 				statement.setString(2, "leader");
 				statement.executeUpdate();
@@ -227,33 +272,32 @@ public class Weekly {
 
 	public String currentLeader() {
 
-		try {
+		try (Connection conn = conn(); PreparedStatement statement = conn.prepareStatement(
+				"SELECT value FROM data WHERE data=?;"
+				)){
 
-			PreparedStatement statement = instance.getPoints().prepareStatement
-					("SELECT * FROM " + instance.data + " WHERE DATA=?");
 			statement.setString(1, "leader");
 			ResultSet results = statement.executeQuery();
 			results.next();
 
-			return results.getString("VALUE");
+			return results.getString("value");
 
 		} catch (SQLException e) {
 			e.printStackTrace();
 			return null;
 		}
-
 	}
 
 	public String getLeader() {
 
-		try {
+		try (Connection conn = conn(); PreparedStatement statement = conn.prepareStatement(
+				"SELECT uuid FROM weekly_data ORDER BY points DESC;"
+				)){
 
-			PreparedStatement statement = instance.getPoints().prepareStatement
-					("SELECT * FROM " + instance.weeklyData + " ORDER BY POINTS DESC");
 			ResultSet results = statement.executeQuery();
 			results.next();
 
-			return results.getString("UUID");
+			return results.getString("uuid");
 
 		} catch (SQLException e) {
 			e.printStackTrace();
@@ -261,13 +305,15 @@ public class Weekly {
 		}
 
 	}
-	
+
 	public Leaderboard getOrderedPoints(String uuid, Leaderboard lead) {
 
-		try {
-			createUserIfNew(uuid);
-			PreparedStatement statement = instance.getPoints().prepareStatement
-					("SELECT * FROM " + instance.weeklyData + " ORDER BY POINTS DESC");
+		createUserIfNew(uuid);
+		
+		try (Connection conn = conn(); PreparedStatement statement = conn.prepareStatement(
+				"SELECT uuid, points FROM weekly_data ORDER BY points DESC;"
+				)){
+			
 			ResultSet results = statement.executeQuery();
 			int pos = 0;
 			for (int i = 0; i < 9; i++) {
@@ -275,8 +321,8 @@ public class Weekly {
 				if (results.next()) {
 					pos += 1;
 					lead.position[i] = pos;
-					lead.uuids[i] = results.getString("UUID");
-					lead.points[i] = results.getInt("POINTS");
+					lead.uuids[i] = results.getString("uuid");
+					lead.points[i] = results.getInt("points");
 				} else {
 					return lead;
 				}
@@ -290,23 +336,25 @@ public class Weekly {
 			return lead;
 		}
 	}
-	
+
 	public Leaderboard getPoints(String uuid, Leaderboard lead) {
 
-		try {
-			createUserIfNew(uuid);
-			PreparedStatement statement = instance.getPoints().prepareStatement
-					("SELECT * FROM " + instance.weeklyData + " ORDER BY POINTS DESC");
+		createUserIfNew(uuid);
+		
+		try (Connection conn = conn(); PreparedStatement statement = conn.prepareStatement(
+				"SELECT uuid, points FROM weekly_data ORDER BY points DESC;"
+				)){
+
 			ResultSet results = statement.executeQuery();
 			int pos = 0;
-			
+
 			while (results.next()) {
 				pos += 1;
-				if (results.getString("UUID").equals(uuid)) {
+				if (results.getString("uuid").equals(uuid)) {
 					break;
 				}
 			}
-			
+
 			for (int j = 0; j < 5; j++) {
 				pos -= 1;
 				if (results.previous()) {
@@ -314,14 +362,14 @@ public class Weekly {
 					break;
 				}
 			}
-			
+
 			for (int i = 0; i < 9; i++) {
 
 				if (results.next()) {
 					pos += 1;
 					lead.position[i] = pos;
-					lead.uuids[i] = results.getString("UUID");
-					lead.points[i] = results.getInt("POINTS");
+					lead.uuids[i] = results.getString("uuid");
+					lead.points[i] = results.getInt("points");
 				} else {
 					return lead;
 				}

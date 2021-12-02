@@ -2,9 +2,9 @@ package me.elgamer.UKBungee.listeners;
 
 import me.elgamer.UKBungee.Main;
 import me.elgamer.UKBungee.sql.PlayerData;
+import me.elgamer.UKBungee.sql.Points;
 import me.elgamer.UKBungee.sql.PublicBuilds;
-import me.elgamer.UKBungee.utils.Points;
-import me.elgamer.UKBungee.utils.Weekly;
+import me.elgamer.UKBungee.sql.Weekly;
 import net.md_5.bungee.api.ChatColor;
 import net.md_5.bungee.api.chat.TextComponent;
 import net.md_5.bungee.api.connection.ProxiedPlayer;
@@ -26,12 +26,15 @@ public class JoinEvent implements Listener {
 		
 		TextComponent joinmessage;
 		
-		if (PlayerData.userExists(uuid)) {
-			PlayerData.updateName(uuid, name);
+		PlayerData playerData = Main.getInstance().playerData;
+		PublicBuilds publicBuilds = Main.getInstance().publicBuilds;
+		
+		if (playerData.userExists(uuid)) {
+			playerData.updateName(uuid, name);
 			joinmessage = new TextComponent(name + " joined UKnet");
 			joinmessage.setColor(ChatColor.YELLOW);
 		} else {
-			PlayerData.createUser(uuid, name);
+			playerData.createUser(uuid, name);
 			joinmessage = new TextComponent(name + " joined UKnet for the first time!");
 			joinmessage.setColor(ChatColor.YELLOW);
 		}
@@ -43,13 +46,13 @@ public class JoinEvent implements Listener {
 			
 		if (p.hasPermission("group.reviewer")) {
 			
-			if (PublicBuilds.reviewExists(uuid)) {
-				if (PublicBuilds.reviewCount(uuid) == 1) {
+			if (publicBuilds.reviewExists(uuid)) {
+				if (publicBuilds.reviewCount(uuid) == 1) {
 					TextComponent message = new TextComponent("There is 1 plot available for review on the building server!");
 					message.setColor(ChatColor.GREEN);
 					p.sendMessage(message);
 				} else {
-					TextComponent message = new TextComponent("There are " + PublicBuilds.reviewCount(uuid) + " plots available for review on the building server!");
+					TextComponent message = new TextComponent("There are " + publicBuilds.reviewCount(uuid) + " plots available for review on the building server!");
 					message.setColor(ChatColor.GREEN);
 					p.sendMessage(message);
 				}
@@ -57,8 +60,8 @@ public class JoinEvent implements Listener {
 			
 		}
 		
-		Weekly w = new Weekly();
-		Points pt = new Points();
+		Weekly w = Main.getInstance().weekly;
+		Points pt = Main.getInstance().points;
 		
 		pt.createUserIfNew(uuid);
 		w.createUserIfNew(uuid);

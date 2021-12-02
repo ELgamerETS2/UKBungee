@@ -1,8 +1,9 @@
 package me.elgamer.UKBungee.commands;
 
+import me.elgamer.UKBungee.Main;
 import me.elgamer.UKBungee.sql.PlayerData;
-import me.elgamer.UKBungee.utils.Points;
-import me.elgamer.UKBungee.utils.Weekly;
+import me.elgamer.UKBungee.sql.Points;
+import me.elgamer.UKBungee.sql.Weekly;
 import net.md_5.bungee.BungeeCord;
 import net.md_5.bungee.api.ChatColor;
 import net.md_5.bungee.api.CommandSender;
@@ -46,10 +47,11 @@ public class RemovePoints extends Command {
 			return;
 		}
 		
-		Points points = new Points();	
-		Weekly weekly = new Weekly();
+		Points points = Main.getInstance().points;
+		Weekly weekly = Main.getInstance().weekly;
+		PlayerData playerData = Main.getInstance().playerData;
 		
-		String uuid = PlayerData.getUuid(args[0]);
+		String uuid = playerData.getUuid(args[0]);
 		
 		if (uuid == null) {
 			sender.sendMessage(new ComponentBuilder (args[0] + " does not exist!").color(ChatColor.RED).create());  

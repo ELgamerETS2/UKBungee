@@ -1,23 +1,33 @@
 package me.elgamer.UKBungee;
 
+import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.sql.Connection;
-import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.concurrent.TimeUnit;
+import java.util.logging.Level;
+import java.util.stream.Collectors;
+
+import javax.sql.DataSource;
+
+import com.mysql.cj.jdbc.MysqlConnectionPoolDataSource;
+import com.mysql.cj.jdbc.MysqlDataSource;
 
 import me.elgamer.UKBungee.commands.AddPoints;
 import me.elgamer.UKBungee.commands.PointsCommand;
 import me.elgamer.UKBungee.commands.RemovePoints;
 import me.elgamer.UKBungee.listeners.JoinEvent;
 import me.elgamer.UKBungee.listeners.QuitEvent;
+import me.elgamer.UKBungee.sql.PlayerData;
+import me.elgamer.UKBungee.sql.Points;
 import me.elgamer.UKBungee.sql.PublicBuilds;
+import me.elgamer.UKBungee.sql.Weekly;
 import me.elgamer.UKBungee.utils.GetDay;
-import me.elgamer.UKBungee.utils.Points;
-import net.md_5.bungee.BungeeCord;
 import net.md_5.bungee.api.ChatColor;
 import net.md_5.bungee.api.ProxyServer;
 import net.md_5.bungee.api.chat.TextComponent;
@@ -32,10 +42,17 @@ public class Main extends Plugin {
 	static Main instance;
 
 	//MySQL
-	private Connection connection_publicbuilds, connection_points;
-	public String host, database_publicbuilds, database_points, username, password, plotData, submitData, 
-	playerData, pointsData, weeklyData, data;
+	public DataSource publicbuildsDataSource, pointsDataSource, uknetDataSource;
+
+	public String host, database_publicbuilds, database_points, database_uknet, username, password;
 	public int port;
+
+	public String channel;
+
+	public PlayerData playerData;
+	public PublicBuilds publicBuilds;
+	public Points points;
+	public Weekly weekly;
 
 	@Override
 	public void onEnable() {
@@ -46,19 +63,38 @@ public class Main extends Plugin {
 		try {
 			Configuration config = ConfigurationProvider.getProvider(YamlConfiguration.class).load(new File(getDataFolder(), "config.yml"));
 			ConfigurationProvider.getProvider(YamlConfiguration.class).save(config, new File(getDataFolder(), "config.yml"));
-		} catch (IOException e) {
+
+			//MySQL		
+			host = config.getString("host");
+			port = config.getInt("port");
+
+			database_publicbuilds = config.getString("database_publicbuilds");
+			database_points = config.getString("database_points");
+			database_uknet = config.getString("database_uknet");
+
+			username = config.getString("username");
+			password = config.getString("password");
+
+			publicbuildsDataSource = publicBuildsMysql(host, port, username, password, database_publicbuilds);
+			pointsDataSource = pointsMysql(host, port, username, password, database_points);
+			uknetDataSource = uknetMysql(host, port, username, password, database_uknet);
+
+			initPointsDb();
+			
+			addDay();
+			addLeader();
+
+			playerData = new PlayerData(pointsDataSource);
+			points = new Points(pointsDataSource);
+			weekly = new Weekly(pointsDataSource);			
+			
+			publicBuilds = new PublicBuilds(publicbuildsDataSource);
+
+		
+
+		} catch (IOException | SQLException e) {
 			e.printStackTrace();
 		}
-
-		//MySQL		
-		mysqlSetup();
-
-		//Creates the mysql table if not existing
-		createPointsTable();
-		createPlayerDatabase();
-
-		createWeeklyTable();
-		createPointsData();
 
 		//Commands
 		ProxyServer.getInstance().getPluginManager().registerCommand(this, new AddPoints());
@@ -75,12 +111,7 @@ public class Main extends Plugin {
 			@Override
 			public void run() {
 
-				getPublicBuilds();
-				getPoints();
-
-				Points pt = new Points();
-				
-				if (PublicBuilds.newSubmit()) {
+				if (publicBuilds.newSubmit()) {
 					TextComponent message = new TextComponent("A plot has been submitted on the building server!");
 					message.setColor(ChatColor.GREEN);
 
@@ -92,8 +123,8 @@ public class Main extends Plugin {
 				}
 				
 				//Update points from messages and add_points.
-				pt.updateMessages();
-				pt.updatePoints();
+				points.updateMessages();
+				points.updatePoints();
 
 			}
 
@@ -104,127 +135,89 @@ public class Main extends Plugin {
 
 	public void onDisable() {
 
-		//MySQL
-		try {
-			if (connection_publicbuilds != null && !connection_publicbuilds.isClosed()) {
+	}
 
-				connection_publicbuilds.close();
-				Configuration config = ConfigurationProvider.getProvider(YamlConfiguration.class).load(new File(getDataFolder(), "config.yml"));
-				
-				TextComponent message = new TextComponent("MySQL disconnected from " + config.getString("database_publicbuilds"));
-				message.setColor(ChatColor.GREEN);
-				BungeeCord.getInstance().getConsole().sendMessage(message);
+	//Creates the publicbuilds mysql connection.
+	private DataSource publicBuildsMysql(String host, int port, String username, String password, String database) throws SQLException {
+
+		MysqlDataSource dataSource = new MysqlConnectionPoolDataSource();
+
+		dataSource.setServerName(host);
+		dataSource.setPortNumber(port);
+		dataSource.setDatabaseName(database + "?&useSSL=false&");
+		dataSource.setUser(username);
+		dataSource.setPassword(password);
+
+		testDataSource(dataSource);
+		return dataSource;
+
+	}
+
+	//Creates the points mysql connection.
+	private DataSource pointsMysql(String host, int port, String username, String password, String database) throws SQLException {
+
+		MysqlDataSource dataSource = new MysqlConnectionPoolDataSource();
+
+		dataSource.setServerName(host);
+		dataSource.setPortNumber(port);
+		dataSource.setDatabaseName(database + "?&useSSL=false&");
+		dataSource.setUser(username);
+		dataSource.setPassword(password);
+
+		testDataSource(dataSource);
+		return dataSource;
+
+	}
+
+	//Creates the uknet mysql connection.
+	private DataSource uknetMysql(String host, int port, String username, String password, String database) throws SQLException {
+
+		MysqlDataSource dataSource = new MysqlConnectionPoolDataSource();
+
+		dataSource.setServerName(host);
+		dataSource.setPortNumber(port);
+		dataSource.setDatabaseName(database + "?&useSSL=false&");
+		dataSource.setUser(username);
+		dataSource.setPassword(password);
+
+		testDataSource(dataSource);
+		return dataSource;
+
+	}
+
+	private void testDataSource(DataSource dataSource) throws SQLException {
+
+		try (Connection connection = dataSource.getConnection()) {
+			if (!connection.isValid(1000)) {
+				throw new SQLException("Could not establish database connection.");
 			}
-
-			if (connection_points != null && !connection_points.isClosed()) {
-
-				connection_points.close();
-				Configuration config = ConfigurationProvider.getProvider(YamlConfiguration.class).load(new File(getDataFolder(), "config.yml"));
-
-				TextComponent message = new TextComponent("MySQL disconnected from " + config.getString("database_points"));
-				message.setColor(ChatColor.GREEN);
-				BungeeCord.getInstance().getConsole().sendMessage(message);
-			}
-		} catch (Exception e) {
-			e.printStackTrace();
 		}
-
 	}
 
-	//Creates the mysql connection.
-	public void mysqlSetup() {
-
-		Configuration config;
-		try {
-			config = ConfigurationProvider.getProvider(YamlConfiguration.class).load(new File(getDataFolder(), "config.yml"));
-			host = config.getString("host");
-			port = config.getInt("port");
-
-			database_publicbuilds = config.getString("database_publicbuilds");
-			database_points = config.getString("database_points");
-
-			username = config.getString("username");
-			password = config.getString("password");
-
-			plotData = config.getString("plotData");
-			submitData = config.getString("submitData");
-
-			playerData = config.getString("playerData");
-			pointsData = config.getString("pointsData");
-			weeklyData = config.getString("weeklyData");
-			data = config.getString("data");
-
-			try {
-
-				synchronized (this) {
-					if (connection_publicbuilds == null || connection_publicbuilds.isClosed()) {
-						Class.forName("com.mysql.jdbc.Driver");
-						setPublicBuilds(DriverManager.getConnection("jdbc:mysql://" + this.host + ":" 
-								+ this.port + "/" + this.database_publicbuilds + "?&useSSL=false&", this.username, this.password));
-
-						TextComponent message = new TextComponent("MySQL connected to " + config.getString("database_publicbuilds"));
-						message.setColor(ChatColor.GREEN);
-						BungeeCord.getInstance().getConsole().sendMessage(message);
-					}
-
-					if (connection_points == null || connection_points.isClosed()) {
-						Class.forName("com.mysql.jdbc.Driver");
-						setPoints(DriverManager.getConnection("jdbc:mysql://" + this.host + ":" 
-								+ this.port + "/" + this.database_points + "?&useSSL=false&", this.username, this.password));
-
-						TextComponent message = new TextComponent("MySQL connected to " + config.getString("database_points"));
-						message.setColor(ChatColor.GREEN);
-						BungeeCord.getInstance().getConsole().sendMessage(message);
-					}
-				}
-
-			} catch (SQLException e) {
-				e.printStackTrace();
-			} catch (ClassNotFoundException e) {
-				e.printStackTrace();
-			}
-
-		} catch (IOException e1) {
-			e1.printStackTrace();
+	private void initPointsDb() throws SQLException, IOException {
+		// first lets read our setup file.
+		// This file contains statements to create our inital tables.
+		// it is located in the resources.
+		String setup;
+		try (InputStream in = this.getResourceAsStream("dbsetup.sql")) {
+			// Legacy way
+			setup = new BufferedReader(new InputStreamReader(in)).lines().collect(Collectors.joining("\n"));
+		} catch (IOException e) {
+			getLogger().log(Level.SEVERE, "Could not read db setup file.", e);
+			throw e;
 		}
-
-	}
-
-	//Returns the mysql publicbuilds connection.
-	public Connection getPublicBuilds() {
-
-		try {
-			if (connection_publicbuilds == null || connection_publicbuilds.isClosed()) {
-				mysqlSetup();
+		// Mariadb can only handle a single query per statement. We need to split at ;.
+		String[] queries = setup.split(";");
+		// execute each query to the database.
+		for (String query : queries) {
+			// If you use the legacy way you have to check for empty queries here.
+			if (query.trim().isEmpty()) continue;
+			try (Connection conn = pointsDataSource.getConnection();
+					PreparedStatement stmt = conn.prepareStatement(query)) {
+				stmt.execute();
 			}
-		} catch (SQLException e) {
-			e.printStackTrace();
 		}
-
-		return connection_publicbuilds;
-	}
-
-	//Returns the mysql points connection.
-	public Connection getPoints() {
-
-		try {
-			if (connection_points == null || connection_points.isClosed()) {
-				mysqlSetup();
-			}
-		} catch (SQLException e) {
-			e.printStackTrace();
-		}
-
-		return connection_points;
-	}
-
-	//Sets the mysql connection as the variable 'connection'.
-	public void setPublicBuilds(Connection connection) {
-		this.connection_publicbuilds = connection;
-	}
-
-	public void setPoints(Connection connection) {
-		this.connection_points = connection;
+		getLogger().info("§2Database setup complete.");
 	}
 
 	//Returns an instance of the plugin.
@@ -232,65 +225,29 @@ public class Main extends Plugin {
 		return instance;
 	}
 
-	public void createPointsTable() {
-		try {
-			PreparedStatement statement = instance.getPoints().prepareStatement
-					("CREATE TABLE IF NOT EXISTS " + pointsData
-							+ " ( UUID VARCHAR(36) NOT NULL , POINTS INT NOT NULL , MESSAGES INT NOT NULL , ADD_POINTS INT NOT NULL , UNIQUE (UUID))");
-			statement.executeUpdate();
-
+	public boolean hasDay() {
+		try (Connection conn = pointsDataSource.getConnection(); PreparedStatement statement = conn.prepareStatement(
+				"SELECT data FROM data WHERE data=?;"
+				)){
+			statement.setString(1, "day");
+			ResultSet results = statement.executeQuery();
+			if (results.next()) {
+				return true;
+			} else {
+				return false;
+			}
 		} catch (SQLException e) {
 			e.printStackTrace();
-		}
-	}
-
-	public void createPlayerDatabase() {
-		try {
-			PreparedStatement statement = instance.getPoints().prepareStatement
-					("CREATE TABLE IF NOT EXISTS " + playerData
-							+ " ( UUID VARCHAR(36) NOT NULL , NAME VARCHAR(36) NOT NULL , BUILDING_TIME INT NOT NULL , UNIQUE (UUID))");
-			statement.executeUpdate();
-
-		} catch (SQLException e) {
-			e.printStackTrace();
-		}
-	}
-
-	public void createWeeklyTable() {
-		try {
-			PreparedStatement statement = instance.getPoints().prepareStatement
-					("CREATE TABLE IF NOT EXISTS " + weeklyData
-							+ " ( UUID VARCHAR(36) NOT NULL , POINTS INT NOT NULL , MONDAY INT NOT NULL , TUESDAY INT NOT NULL , WEDNESDAY INT NOT NULL , THURSDAY INT NOT NULL , FRIDAY INT NOT NULL , SATURDAY INT NOT NULL , SUNDAY INT NOT NULL , UNIQUE (UUID))");
-			statement.executeUpdate();
-
-		} catch (SQLException e) {
-			e.printStackTrace();
-		}
-	}
-
-	public void createPointsData() {
-		try {
-			PreparedStatement statement = instance.getPoints().prepareStatement
-					("CREATE TABLE IF NOT EXISTS " + data
-							+ " ( DATA VARCHAR(36) NOT NULL , VALUE VARCHAR(36) NOT NULL , UNIQUE (DATA))");
-			statement.executeUpdate();
-			addDay();
-			addLeader();
-
-		} catch (SQLException e) {
-			e.printStackTrace();
+			return false;
 		}
 	}
 
 	public void addDay() {
-		try {
-			PreparedStatement statement = instance.getPoints().prepareStatement
-					("SELECT * FROM " + data + " WHERE DATA=?");
-			statement.setString(1, "day");
-			ResultSet results = statement.executeQuery();
-			if (!(results.next())) {
-				statement = instance.getPoints().prepareStatement
-						("INSERT INTO " + data + " (DATA,VALUE) VALUE (?,?)");
+		try (Connection conn = pointsDataSource.getConnection(); PreparedStatement statement = conn.prepareStatement(
+				"INSERT INTO data(data, value) VALUES (? , ?);"
+				)){
+
+			if (!hasDay()) { 
 				statement.setString(1, "day");
 				statement.setString(2, String.valueOf(GetDay.getDay()));
 				statement.executeUpdate();
@@ -298,18 +255,34 @@ public class Main extends Plugin {
 		} catch (SQLException e) {
 			e.printStackTrace();
 		}
-
 	}
 
-	public void addLeader() {
-		try {
-			PreparedStatement statement = instance.getPoints().prepareStatement
-					("SELECT * FROM " + data + " WHERE DATA=?");
+	public boolean hasLeader() {
+
+		try (Connection conn = pointsDataSource.getConnection(); PreparedStatement statement = conn.prepareStatement(
+				"SELECT data FROM data WHERE data=?;"
+				)){
 			statement.setString(1, "leader");
 			ResultSet results = statement.executeQuery();
-			if (!(results.next())) {
-				statement = instance.getPoints().prepareStatement
-						("INSERT INTO " + data + " (DATA,VALUE) VALUE (?,?)");
+			if (results.next()) {
+				return true;
+			} else {
+				return false;
+			}
+		} catch (SQLException e) {
+			e.printStackTrace();
+			return false;
+		}
+	}
+
+
+	public void addLeader() {
+
+		try (Connection conn = pointsDataSource.getConnection(); PreparedStatement statement = conn.prepareStatement(
+				"INSERT INTO data(data, value) VALUES (? , ?);"
+				)){
+
+			if (!hasLeader()) { 
 				statement.setString(1, "leader");
 				statement.setString(2, "null");
 				statement.executeUpdate();
@@ -319,5 +292,4 @@ public class Main extends Plugin {
 		}
 
 	}
-
 }
