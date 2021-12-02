@@ -8,5 +8,6 @@
 	<classpathentry kind="src" path="src"/>
 	<classpathentry kind="lib" path="C:/Users/Laurens/Downloads/BungeeCord.jar"/>
 	<classpathentry kind="lib" path="C:/Users/Laurens/Downloads/LuckPerms-Bukkit-5.3.3.jar"/>
+	<classpathentry kind="lib" path="C:/Users/Laurens/Downloads/mysql-connector-java-5.1.49.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>

@@ -106,7 +106,7 @@ public class Weekly {
 		}
 
 		try (Connection conn = conn(); PreparedStatement statement = conn.prepareStatement(
-				"UPDATE weekly_data SET points=points+" + points + ", " + dayString + "=" + dayString + "+" + points + "WHERE uuid=?;"
+				"UPDATE weekly_data SET points=points+" + points + ", " + dayString + "=" + dayString + "+" + points + " WHERE uuid=?;"
 				)){
 
 			statement.setString(1, uuid);

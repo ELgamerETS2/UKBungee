@@ -291,20 +291,19 @@ public class Points {
 	public void updatePoints() {
 
 		try (Connection conn = conn(); PreparedStatement statement = conn.prepareStatement(
-				"SELECT uuid FROM points_data WHERE add_points>=1;"
+				"SELECT uuid, add_points FROM points_data WHERE add_points>=1;"
 				)){
 
 			ResultSet results = statement.executeQuery();
 
 			while (results.next()) {
 
+				w.addPoints(results.getString("uuid"), results.getInt("add_points"));
 				addPointsToPoints(results.getString("uuid"), results.getInt("add_points"));
 				
 				TextComponent message = new TextComponent("Added " + results.getInt("add_points") + " point(s) to " + playerData.getName(results.getString("uuid")));
 				message.setColor(ChatColor.GREEN);
 				BungeeCord.getInstance().getConsole().sendMessage(message);
-
-				w.addPoints(results.getString("uuid"), results.getInt("add_points"));
 			}
 
 		} catch (SQLException e) {

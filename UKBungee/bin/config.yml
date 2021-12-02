@@ -12,5 +12,3 @@ database_uknet: minecraft_uknet
 
 pointsData: 
 messagesPerPoint: 30
-
-messageChannel: GlobalMessages

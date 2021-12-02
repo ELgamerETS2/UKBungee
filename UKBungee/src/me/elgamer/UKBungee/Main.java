@@ -15,8 +15,8 @@ import java.util.stream.Collectors;
 
 import javax.sql.DataSource;
 
-import com.mysql.cj.jdbc.MysqlConnectionPoolDataSource;
-import com.mysql.cj.jdbc.MysqlDataSource;
+import com.mysql.jdbc.jdbc2.optional.MysqlConnectionPoolDataSource;
+import com.mysql.jdbc.jdbc2.optional.MysqlDataSource;
 
 import me.elgamer.UKBungee.commands.AddPoints;
 import me.elgamer.UKBungee.commands.PointsCommand;
