@@ -23,6 +23,7 @@ import me.elgamer.UKBungee.commands.PointsCommand;
 import me.elgamer.UKBungee.commands.RemovePoints;
 import me.elgamer.UKBungee.listeners.JoinEvent;
 import me.elgamer.UKBungee.listeners.QuitEvent;
+import me.elgamer.UKBungee.sql.Announcements;
 import me.elgamer.UKBungee.sql.PlayerData;
 import me.elgamer.UKBungee.sql.Points;
 import me.elgamer.UKBungee.sql.PublicBuilds;
@@ -53,6 +54,11 @@ public class Main extends Plugin {
 	public PublicBuilds publicBuilds;
 	public Points points;
 	public Weekly weekly;
+	public Announcements announcements;
+
+	private boolean condition;
+	private String[] announcement;
+	private TextComponent message;
 
 	@Override
 	public void onEnable() {
@@ -80,17 +86,17 @@ public class Main extends Plugin {
 			uknetDataSource = uknetMysql(host, port, username, password, database_uknet);
 
 			initPointsDb();
-			
+
 			addDay();
 			addLeader();
 
 			playerData = new PlayerData(pointsDataSource);
-			points = new Points(pointsDataSource);
-			weekly = new Weekly(pointsDataSource);			
-			
+			weekly = new Weekly(pointsDataSource);	
+			points = new Points(pointsDataSource);		
+
 			publicBuilds = new PublicBuilds(publicbuildsDataSource);
 
-		
+			announcements = new Announcements(uknetDataSource);		
 
 		} catch (IOException | SQLException e) {
 			e.printStackTrace();
@@ -112,7 +118,7 @@ public class Main extends Plugin {
 			public void run() {
 
 				if (publicBuilds.newSubmit()) {
-					TextComponent message = new TextComponent("A plot has been submitted on the building server!");
+					message = new TextComponent("A plot has been submitted on the building server!");
 					message.setColor(ChatColor.GREEN);
 
 					for (ProxiedPlayer p : getProxy().getPlayers()) {
@@ -120,8 +126,32 @@ public class Main extends Plugin {
 							p.sendMessage(message);
 						}
 					}
+
+					//Iterate until no new announcements exist.
+					condition = true;
+					while(condition) {
+
+						announcement = announcements.getAnnouncement();
+
+						//If the announcement is null, it means there is no new announcement, then stop the loop.
+						if (announcements == null) {
+							condition = false;
+							continue;
+						} else {
+
+							//Create the message and send it to all online players.
+							message = new TextComponent(announcement[0]);
+							message.setColor(ChatColor.of(announcement[1]));
+
+							for (ProxiedPlayer p : getProxy().getPlayers()) {
+								p.sendMessage(message);
+							}
+						}
+					}
+
+
 				}
-				
+
 				//Update points from messages and add_points.
 				points.updateMessages();
 				points.updatePoints();
