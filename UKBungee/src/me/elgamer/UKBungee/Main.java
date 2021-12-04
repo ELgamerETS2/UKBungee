@@ -29,6 +29,7 @@ import me.elgamer.UKBungee.sql.Points;
 import me.elgamer.UKBungee.sql.PublicBuilds;
 import me.elgamer.UKBungee.sql.Weekly;
 import me.elgamer.UKBungee.utils.GetDay;
+import net.md_5.bungee.BungeeCord;
 import net.md_5.bungee.api.ChatColor;
 import net.md_5.bungee.api.ProxyServer;
 import net.md_5.bungee.api.chat.TextComponent;
@@ -117,6 +118,29 @@ public class Main extends Plugin {
 			@Override
 			public void run() {
 
+				//Iterate until no new announcements exist.
+				condition = true;
+				while(condition) {
+
+					announcement = announcements.getAnnouncement();
+
+					//If the announcement is null, it means there is no new announcement, then stop the loop.
+					if (announcement == null) {
+						condition = false;
+						continue;
+					} else {
+
+						//Create the message and send it to all online players.
+						message = new TextComponent(announcement[0]);
+						message.setColor(ChatColor.of(announcement[1]));
+
+						for (ProxiedPlayer p : getProxy().getPlayers()) {
+							p.sendMessage(message);
+						}
+						BungeeCord.getInstance().getConsole().sendMessage(message);
+					}
+				}
+				
 				if (publicBuilds.newSubmit()) {
 					message = new TextComponent("A plot has been submitted on the building server!");
 					message.setColor(ChatColor.GREEN);
@@ -126,30 +150,6 @@ public class Main extends Plugin {
 							p.sendMessage(message);
 						}
 					}
-
-					//Iterate until no new announcements exist.
-					condition = true;
-					while(condition) {
-
-						announcement = announcements.getAnnouncement();
-
-						//If the announcement is null, it means there is no new announcement, then stop the loop.
-						if (announcements == null) {
-							condition = false;
-							continue;
-						} else {
-
-							//Create the message and send it to all online players.
-							message = new TextComponent(announcement[0]);
-							message.setColor(ChatColor.of(announcement[1]));
-
-							for (ProxiedPlayer p : getProxy().getPlayers()) {
-								p.sendMessage(message);
-							}
-						}
-					}
-
-
 				}
 
 				//Update points from messages and add_points.

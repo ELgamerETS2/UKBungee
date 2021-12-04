@@ -57,7 +57,7 @@ public class Announcements {
 				)){
 			
 			statement.setInt(1, id);
-			statement.executeQuery();
+			statement.executeUpdate();
 
 		} catch (SQLException e) {
 			e.printStackTrace();
