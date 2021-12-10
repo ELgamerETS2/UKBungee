@@ -342,7 +342,8 @@ public class Weekly {
 		createUserIfNew(uuid);
 		
 		try (Connection conn = conn(); PreparedStatement statement = conn.prepareStatement(
-				"SELECT uuid, points FROM weekly_data ORDER BY points DESC;"
+				"SELECT uuid, points FROM weekly_data ORDER BY points DESC;",
+				ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_UPDATABLE
 				)){
 
 			ResultSet results = statement.executeQuery();
